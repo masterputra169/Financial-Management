@@ -1,104 +1,64 @@
 // src/App.jsx
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import Navbar from './components/organisms/Navbar';
 import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+import UserPage from './pages/UserPage';
 import AdminPage from './pages/AdminPage';
 import FormPage from './pages/FormPage';
 import EditPage from './pages/EditPage';
 import AboutPage from './pages/AboutPage';
-import LoginPage from './pages/LoginPage';
 
 export default function App() {
-  const [transactions, setTransactions] = useState([
-    {
-      id: 1,
-      date: '2025-11-01',
-      type: 'pemasukan',
-      category: 'Gaji',
-      description: 'Gaji bulan November',
-      amount: '5000000'
-    },
-    {
-      id: 2,
-      date: '2025-11-02',
-      type: 'pengeluaran',
-      category: 'Makanan',
-      description: 'Makan siang di restoran',
-      amount: '50000'
-    },
-    {
-      id: 3,
-      date: '2025-11-03',
-      type: 'pengeluaran',
-      category: 'Transport',
-      description: 'Bensin motor',
-      amount: '30000'
-    }
-  ]);
-
-  // CREATE - Tambah transaksi (Guest & Admin)
-  const handleAddTransaction = (newTransaction) => {
-    const transactionWithId = {
-      ...newTransaction,
-      id: Date.now() // Generate unique ID
-    };
-    setTransactions([transactionWithId, ...transactions]);
-  };
-
-  // UPDATE - Edit transaksi (Admin only)
-  const handleUpdateTransaction = (id, updatedTransaction) => {
-    setTransactions(transactions.map(t => 
-      t.id === id ? { ...updatedTransaction, id } : t
-    ));
-  };
-
-  // DELETE - Hapus transaksi (Admin only)
-  const handleDeleteTransaction = (id) => {
-    setTransactions(transactions.filter(t => t.id !== id));
-  };
-
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-gray-50">
           <Navbar />
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<HomePage transactions={transactions} />} />
-            <Route path="/about" element={<AboutPage />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/about" element={<AboutPage />} />
             
-            {/* Form untuk Guest & Admin */}
+            {/* Protected Routes - User & Admin */}
             <Route 
-              path="/input" 
-              element={<FormPage onAddTransaction={handleAddTransaction} />} 
-            />
-            
-            {/* Protected Routes - Admin Only */}
-            <Route 
-              path="/admin" 
+              path="/dashboard" 
               element={
                 <ProtectedRoute>
-                  <AdminPage 
-                    transactions={transactions}
-                    onDeleteTransaction={handleDeleteTransaction}
-                  />
+                  <UserPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/transactions/add" 
+              element={
+                <ProtectedRoute>
+                  <FormPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/transactions/edit/:id" 
+              element={
+                <ProtectedRoute>
+                  <EditPage />
                 </ProtectedRoute>
               } 
             />
             
+            {/* Admin Only Routes */}
             <Route 
-              path="/edit/:id" 
+              path="/admin" 
               element={
-                <ProtectedRoute>
-                  <EditPage 
-                    transactions={transactions}
-                    onUpdateTransaction={handleUpdateTransaction}
-                  />
-                </ProtectedRoute>
+                <AdminRoute>
+                  <AdminPage />
+                </AdminRoute>
               } 
             />
           </Routes>
