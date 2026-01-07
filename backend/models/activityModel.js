@@ -62,9 +62,10 @@ const ActivityModel = {
 
       query += ' ORDER BY a.created_at DESC';
 
+      // FIXED: Gunakan template literal untuk LIMIT
       if (filters.limit) {
-        query += ' LIMIT ?';
-        params.push(parseInt(filters.limit));
+        const limitNum = parseInt(filters.limit, 10);
+        query += ` LIMIT ${limitNum}`;
       }
 
       const [rows] = await db.execute(query, params);
@@ -77,26 +78,27 @@ const ActivityModel = {
   // Get activities by user
   findByUserId: async (userId, limit = 50) => {
     try {
-      const [rows] = await db.execute(
-        `SELECT * FROM activity_logs 
-         WHERE user_id = ? 
-         ORDER BY created_at DESC 
-         LIMIT ?`,
-        [userId, limit]
-      );
+      const limitNum = parseInt(limit, 10) || 50;
+      
+      const [rows] = await db.execute(`
+        SELECT * FROM activity_logs 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT ${limitNum}
+      `, [userId]);
+      
       return rows;
     } catch (error) {
       throw error;
     }
   },
 
-getRecent: async (limit = 10) => {
+  // FIXED: Gunakan db bukan pool
+  getRecent: async (limit = 10) => {
     try {
-      // Pastikan limit adalah integer
       const limitNum = parseInt(limit, 10) || 10;
       
-      // Gunakan template literal untuk LIMIT (aman karena sudah di-parseInt)
-      const [rows] = await pool.execute(`
+      const [rows] = await db.execute(`
         SELECT a.*, u.username, u.full_name 
         FROM activity_logs a 
         JOIN users u ON a.user_id = u.id

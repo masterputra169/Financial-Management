@@ -1,4 +1,4 @@
-// src/pages/AdminPage.jsx - Admin Monitoring Dashboard
+// src/pages/AdminPage.jsx - Admin Monitoring Dashboard (Max 5 rows per table)
 import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import Footer from '../components/organisms/Footer';
@@ -179,170 +179,187 @@ const AdminPage = () => {
               </div>
             )}
 
-            {/* Users Tab */}
+            {/* Users Tab - SCROLLABLE MAX HEIGHT 5 ROWS */}
             {activeTab === 'users' && (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Email</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Role</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Transaksi</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total Pemasukan</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total Pengeluaran</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Status</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span>{u.role === 'admin' ? '👑' : '👤'}</span>
-                            <div>
-                              <p className="font-medium">{u.full_name}</p>
-                              <p className="text-xs text-gray-500">@{u.username}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm">{u.email}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
-                            u.role === 'admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
-                          }`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-medium">{u.total_transactions}</td>
-                        <td className="px-4 py-3 text-right text-green-600 font-medium">
-                          Rp {parseFloat(u.total_pemasukan).toLocaleString('id-ID')}
-                        </td>
-                        <td className="px-4 py-3 text-right text-red-600 font-medium">
-                          Rp {parseFloat(u.total_pengeluaran).toLocaleString('id-ID')}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {u.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {u.role !== 'admin' && (
-                            <div className="flex justify-center gap-1">
-                              <button
-                                onClick={() => handleToggleUser(u.id)}
-                                className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs"
-                              >
-                                {u.is_active ? '🚫' : '✅'}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteUser(u.id)}
-                                className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          )}
-                        </td>
+              <div>
+                <div className="mb-4 flex justify-between items-center">
+                </div>
+                {/* MAX HEIGHT = 5 rows (~320px) dengan scroll */}
+                <div className="overflow-x-auto max-h-[320px] overflow-y-auto border border-gray-200 rounded-lg">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Email</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Role</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Transaksi</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total Pemasukan</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total Pengeluaran</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Status</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Aksi</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y bg-white">
+                      {users.map((u) => (
+                        <tr key={u.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span>{u.role === 'admin' ? '👑' : '👤'}</span>
+                              <div>
+                                <p className="font-medium">{u.full_name}</p>
+                                <p className="text-xs text-gray-500">@{u.username}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm">{u.email}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              u.role === 'admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-medium">{u.total_transactions}</td>
+                          <td className="px-4 py-3 text-right text-green-600 font-medium">
+                            Rp {parseFloat(u.total_pemasukan).toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-4 py-3 text-right text-red-600 font-medium">
+                            Rp {parseFloat(u.total_pengeluaran).toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {u.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {u.role !== 'admin' && (
+                              <div className="flex justify-center gap-1">
+                                <button
+                                  onClick={() => handleToggleUser(u.id)}
+                                  className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs"
+                                >
+                                  {u.is_active ? '🚫' : '✅'}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
               </div>
             )}
 
-            {/* Transactions Tab */}
+            {/* Transactions Tab - SCROLLABLE MAX HEIGHT 5 ROWS */}
             {activeTab === 'transactions' && (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Tanggal</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Kategori</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Deskripsi</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Jumlah</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tipe</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {allTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm">
-                          <span className="font-medium">{tx.full_name || tx.username}</span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {new Date(tx.date).toLocaleDateString('id-ID')}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                            {tx.category}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{tx.description || '-'}</td>
-                        <td className={`px-4 py-3 text-sm text-right font-bold ${
-                          tx.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          Rp {parseFloat(tx.amount).toLocaleString('id-ID')}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            tx.type === 'pemasukan' 
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-red-100 text-red-700'
-                          }`}>
-                            {tx.type}
-                          </span>
-                        </td>
+              <div>
+                <div className="mb-4 flex justify-between items-center">
+                </div>
+                {/* MAX HEIGHT = 5 rows (~320px) dengan scroll */}
+                <div className="overflow-x-auto max-h-[320px] overflow-y-auto border border-gray-200 rounded-lg">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Tanggal</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Kategori</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Deskripsi</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Jumlah</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tipe</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y bg-white">
+                      {allTransactions.map((tx) => (
+                        <tr key={tx.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm">
+                            <span className="font-medium">{tx.full_name || tx.username}</span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {new Date(tx.date).toLocaleDateString('id-ID')}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                              {tx.category}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{tx.description || '-'}</td>
+                          <td className={`px-4 py-3 text-sm text-right font-bold ${
+                            tx.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            Rp {parseFloat(tx.amount).toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                              tx.type === 'pemasukan' 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {tx.type}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
               </div>
             )}
 
-            {/* Activities Tab */}
+            {/* Activities Tab - SCROLLABLE MAX HEIGHT 5 ROWS */}
             {activeTab === 'activities' && (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Waktu</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Action</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Deskripsi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {activities.map((act) => (
-                      <tr key={act.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {new Date(act.created_at).toLocaleString('id-ID')}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="font-medium">{act.full_name || act.username}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            act.action === 'LOGIN' ? 'bg-green-100 text-green-700' :
-                            act.action === 'LOGOUT' ? 'bg-gray-100 text-gray-700' :
-                            act.action === 'REGISTER' ? 'bg-blue-100 text-blue-700' :
-                            act.action.includes('CREATE') ? 'bg-purple-100 text-purple-700' :
-                            act.action.includes('UPDATE') ? 'bg-yellow-100 text-yellow-700' :
-                            act.action.includes('DELETE') ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {act.action}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{act.description}</td>
+              <div>
+                <div className="mb-4 flex justify-between items-center">
+                </div>
+                {/* MAX HEIGHT = 5 rows (~320px) dengan scroll */}
+                <div className="overflow-x-auto max-h-[320px] overflow-y-auto border border-gray-200 rounded-lg">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Waktu</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Action</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Deskripsi</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y bg-white">
+                      {activities.map((act) => (
+                        <tr key={act.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {new Date(act.created_at).toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-medium">{act.full_name || act.username}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                              act.action === 'LOGIN' ? 'bg-green-100 text-green-700' :
+                              act.action === 'LOGOUT' ? 'bg-gray-100 text-gray-700' :
+                              act.action === 'REGISTER' ? 'bg-blue-100 text-blue-700' :
+                              act.action.includes('CREATE') ? 'bg-purple-100 text-purple-700' :
+                              act.action.includes('UPDATE') ? 'bg-yellow-100 text-yellow-700' :
+                              act.action.includes('DELETE') ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {act.action}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{act.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

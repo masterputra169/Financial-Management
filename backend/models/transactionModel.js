@@ -79,9 +79,10 @@ const TransactionModel = {
 
       query += ' ORDER BY t.date DESC, t.created_at DESC';
 
+      // FIXED: Gunakan template literal untuk LIMIT
       if (filters.limit) {
-        query += ' LIMIT ?';
-        params.push(parseInt(filters.limit));
+        const limitNum = parseInt(filters.limit, 10);
+        query += ` LIMIT ${limitNum}`;
       }
 
       const [rows] = await db.execute(query, params);
@@ -218,6 +219,8 @@ const TransactionModel = {
   // Get daily summary (admin)
   getDailySummary: async (days = 30) => {
     try {
+      const daysNum = parseInt(days, 10) || 30;
+      
       const [rows] = await db.execute(`
         SELECT 
           DATE(date) as date,
@@ -225,10 +228,10 @@ const TransactionModel = {
           SUM(CASE WHEN type = 'pemasukan' THEN amount ELSE 0 END) as pemasukan,
           SUM(CASE WHEN type = 'pengeluaran' THEN amount ELSE 0 END) as pengeluaran
         FROM transactions
-        WHERE date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        WHERE date >= DATE_SUB(CURDATE(), INTERVAL ${daysNum} DAY)
         GROUP BY DATE(date)
         ORDER BY date DESC
-      `, [days]);
+      `);
       return rows;
     } catch (error) {
       throw error;
