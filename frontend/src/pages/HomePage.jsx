@@ -136,23 +136,6 @@ const HomePage = () => {
           </div>
         </section>
       )}
-
-      {/* Tech Stack */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-10">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">Dibangun Dengan</h3>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6">
-            {['React', 'Tailwind CSS', 'Express.js', 'MySQL', 'JWT Auth'].map((tech, i) => (
-              <span key={i} className="px-6 py-3 bg-white rounded-full shadow-md text-gray-700 font-medium">
-                {tech}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <Footer />
     </div>
   );

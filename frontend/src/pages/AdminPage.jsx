@@ -1,7 +1,33 @@
-// src/pages/AdminPage.jsx - Admin Monitoring Dashboard (Max 5 rows per table)
+// src/pages/AdminPage.jsx - Admin Dashboard with Charts
 import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import Footer from '../components/organisms/Footer';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+} from 'chart.js';
+import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement
+);
 
 const AdminPage = () => {
   const [dashboard, setDashboard] = useState(null);
@@ -57,6 +83,158 @@ const AdminPage = () => {
     }
   };
 
+  // Chart Data Preparation
+  const getUserActivityChart = () => {
+    const activeUsers = users.filter(u => u.is_active).length;
+    const inactiveUsers = users.filter(u => !u.is_active).length;
+
+    return {
+      labels: ['Active Users', 'Inactive Users'],
+      datasets: [
+        {
+          data: [activeUsers, inactiveUsers],
+          backgroundColor: ['#10B981', '#EF4444'],
+          borderColor: ['#059669', '#DC2626'],
+          borderWidth: 2,
+        },
+      ],
+    };
+  };
+
+  const getTransactionTypeChart = () => {
+    const pemasukan = allTransactions.filter(tx => tx.type === 'pemasukan').length;
+    const pengeluaran = allTransactions.filter(tx => tx.type === 'pengeluaran').length;
+
+    return {
+      labels: ['Pemasukan', 'Pengeluaran'],
+      datasets: [
+        {
+          data: [pemasukan, pengeluaran],
+          backgroundColor: ['#3B82F6', '#F59E0B'],
+          borderColor: ['#2563EB', '#D97706'],
+          borderWidth: 2,
+        },
+      ],
+    };
+  };
+
+  const getTopUsersChart = () => {
+    const topUsers = users
+      .sort((a, b) => b.total_transactions - a.total_transactions)
+      .slice(0, 5);
+
+    return {
+      labels: topUsers.map(u => u.username),
+      datasets: [
+        {
+          label: 'Total Transaksi',
+          data: topUsers.map(u => u.total_transactions),
+          backgroundColor: 'rgba(59, 130, 246, 0.8)',
+          borderColor: 'rgba(37, 99, 235, 1)',
+          borderWidth: 2,
+        },
+      ],
+    };
+  };
+
+  const getActivityTrendChart = () => {
+    const activityCounts = activities.reduce((acc, act) => {
+      const action = act.action;
+      acc[action] = (acc[action] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      labels: Object.keys(activityCounts),
+      datasets: [
+        {
+          label: 'Jumlah Aktivitas',
+          data: Object.values(activityCounts),
+          backgroundColor: [
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+            'rgba(168, 85, 247, 0.8)',
+          ],
+          borderWidth: 2,
+        },
+      ],
+    };
+  };
+
+  const getMoneyFlowChart = () => {
+    const totalPemasukan = parseFloat(dashboard?.transactions?.totalPemasukan || 0);
+    const totalPengeluaran = allTransactions
+      .filter(tx => tx.type === 'pengeluaran')
+      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+
+    return {
+      labels: ['Pemasukan', 'Pengeluaran'],
+      datasets: [
+        {
+          label: 'Jumlah (Rp)',
+          data: [totalPemasukan, totalPengeluaran],
+          backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+          borderColor: ['rgba(5, 150, 105, 1)', 'rgba(220, 38, 38, 1)'],
+          borderWidth: 2,
+        },
+      ],
+    };
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          padding: 10,
+          font: {
+            size: 11,
+            weight: 'bold'
+          }
+        }
+      }
+    }
+  };
+
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  };
+
+  const moneyBarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+          }
+        }
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -99,6 +277,52 @@ const AdminPage = () => {
           <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-orange-500">
             <p className="text-gray-500 text-sm">Aktivitas Hari Ini</p>
             <p className="text-3xl font-bold text-orange-600">{dashboard?.todayActivities || 0}</p>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* User Activity Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="font-bold text-gray-800 mb-4">👥 Status User</h3>
+            <div className="h-56">
+              <Doughnut data={getUserActivityChart()} options={chartOptions} />
+            </div>
+          </div>
+
+          {/* Transaction Type Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="font-bold text-gray-800 mb-4">📊 Tipe Transaksi</h3>
+            <div className="h-56">
+              <Pie data={getTransactionTypeChart()} options={chartOptions} />
+            </div>
+          </div>
+
+          {/* Activity Distribution */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="font-bold text-gray-800 mb-4">📋 Distribusi Aktivitas</h3>
+            <div className="h-56">
+              <Doughnut data={getActivityTrendChart()} options={chartOptions} />
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Top Users Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="font-bold text-gray-800 mb-4">🏆 Top 5 User Teraktif</h3>
+            <div className="h-64">
+              <Bar data={getTopUsersChart()} options={barChartOptions} />
+            </div>
+          </div>
+
+          {/* Money Flow Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="font-bold text-gray-800 mb-4">💰 Arus Keuangan Global</h3>
+            <div className="h-64">
+              <Bar data={getMoneyFlowChart()} options={moneyBarOptions} />
+            </div>
           </div>
         </div>
 
@@ -179,186 +403,167 @@ const AdminPage = () => {
               </div>
             )}
 
-            {/* Users Tab - SCROLLABLE MAX HEIGHT 5 ROWS */}
+            {/* Users Tab */}
             {activeTab === 'users' && (
-              <div>
-                <div className="mb-4 flex justify-between items-center">
-                </div>
-                {/* MAX HEIGHT = 5 rows (~320px) dengan scroll */}
-                <div className="overflow-x-auto max-h-[320px] overflow-y-auto border border-gray-200 rounded-lg">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Email</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Role</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Transaksi</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total Pemasukan</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total Pengeluaran</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Status</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y bg-white">
-                      {users.map((u) => (
-                        <tr key={u.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span>{u.role === 'admin' ? '👑' : '👤'}</span>
-                              <div>
-                                <p className="font-medium">{u.full_name}</p>
-                                <p className="text-xs text-gray-500">@{u.username}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm">{u.email}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              u.role === 'admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {u.role}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center font-medium">{u.total_transactions}</td>
-                          <td className="px-4 py-3 text-right text-green-600 font-medium">
-                            Rp {parseFloat(u.total_pemasukan).toLocaleString('id-ID')}
-                          </td>
-                          <td className="px-4 py-3 text-right text-red-600 font-medium">
-                            Rp {parseFloat(u.total_pengeluaran).toLocaleString('id-ID')}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {u.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {u.role !== 'admin' && (
-                              <div className="flex justify-center gap-1">
-                                <button
-                                  onClick={() => handleToggleUser(u.id)}
-                                  className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs"
-                                >
-                                  {u.is_active ? '🚫' : '✅'}
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(u.id)}
-                                  className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs"
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-              </div>
-            )}
-
-            {/* Transactions Tab - SCROLLABLE MAX HEIGHT 5 ROWS */}
-            {activeTab === 'transactions' && (
-              <div>
-                <div className="mb-4 flex justify-between items-center">
-                </div>
-                {/* MAX HEIGHT = 5 rows (~320px) dengan scroll */}
-                <div className="overflow-x-auto max-h-[320px] overflow-y-auto border border-gray-200 rounded-lg">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Tanggal</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Kategori</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Deskripsi</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Jumlah</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tipe</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y bg-white">
-                      {allTransactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm">
-                            <span className="font-medium">{tx.full_name || tx.username}</span>
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {new Date(tx.date).toLocaleDateString('id-ID')}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                              {tx.category}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{tx.description || '-'}</td>
-                          <td className={`px-4 py-3 text-sm text-right font-bold ${
-                            tx.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-bold text-gray-800 mb-4">👥 Daftar Semua User</h3>
+                <div className="space-y-3 max-h-[480px] overflow-y-auto">
+                  {users.map((u) => (
+                    <div key={u.id} className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
+                            u.role === 'admin' ? 'bg-yellow-100' : 'bg-blue-100'
                           }`}>
-                            Rp {parseFloat(tx.amount).toLocaleString('id-ID')}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              tx.type === 'pemasukan' 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-red-100 text-red-700'
-                            }`}>
-                              {tx.type}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            {u.role === 'admin' ? '👑' : '👤'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-gray-800">{u.full_name}</p>
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                u.role === 'admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {u.role}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                                u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {u.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500">@{u.username} • {u.email}</p>
+                            <div className="flex gap-4 mt-2">
+                              <span className="text-xs text-gray-600">💰 {u.total_transactions} transaksi</span>
+                              <span className="text-xs text-green-600 font-medium">
+                                ↑ Rp {parseFloat(u.total_pemasukan).toLocaleString('id-ID')}
+                              </span>
+                              <span className="text-xs text-red-600 font-medium">
+                                ↓ Rp {parseFloat(u.total_pengeluaran).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {u.role !== 'admin' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleToggleUser(u.id)}
+                              className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                              {u.is_active ? '🚫 Nonaktifkan' : '✅ Aktifkan'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(u.id)}
+                              className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                              🗑️ Hapus
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                
               </div>
             )}
 
-            {/* Activities Tab - SCROLLABLE MAX HEIGHT 5 ROWS */}
-            {activeTab === 'activities' && (
-              <div>
-                <div className="mb-4 flex justify-between items-center">
+            {/* Transactions Tab */}
+            {activeTab === 'transactions' && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-bold text-gray-800 mb-4">💰 Semua Transaksi User</h3>
+                <div className="space-y-3 max-h-[480px] overflow-y-auto">
+                  {allTransactions.map((tx) => (
+                    <div key={tx.id} className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
+                            tx.type === 'pemasukan' ? 'bg-green-100' : 'bg-red-100'
+                          }`}>
+                            {tx.type === 'pemasukan' ? '💰' : '💸'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-bold text-gray-800">{tx.full_name || tx.username}</p>
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                                {tx.category}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                tx.type === 'pemasukan' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {tx.type}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">{tx.description || 'Tidak ada deskripsi'}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              📅 {new Date(tx.date).toLocaleDateString('id-ID', { 
+                                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-2xl font-bold ${tx.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>
+                            {tx.type === 'pemasukan' ? '+' : '-'} Rp {parseFloat(tx.amount).toLocaleString('id-ID')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {/* MAX HEIGHT = 5 rows (~320px) dengan scroll */}
-                <div className="overflow-x-auto max-h-[320px] overflow-y-auto border border-gray-200 rounded-lg">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Waktu</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">User</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Action</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Deskripsi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y bg-white">
-                      {activities.map((act) => (
-                        <tr key={act.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-500">
-                            {new Date(act.created_at).toLocaleString('id-ID')}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="font-medium">{act.full_name || act.username}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+              </div>
+            )}
+
+            {/* Activities Tab */}
+            {activeTab === 'activities' && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-bold text-gray-800 mb-4">📋 Log Aktivitas Sistem</h3>
+                <div className="space-y-3 max-h-[480px] overflow-y-auto">
+                  {activities.map((act) => (
+                    <div key={act.id} className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
+                          act.action === 'LOGIN' ? 'bg-green-100' :
+                          act.action === 'LOGOUT' ? 'bg-gray-100' :
+                          act.action === 'REGISTER' ? 'bg-blue-100' :
+                          act.action.includes('CREATE') ? 'bg-purple-100' :
+                          act.action.includes('UPDATE') ? 'bg-yellow-100' :
+                          act.action.includes('DELETE') ? 'bg-red-100' : 'bg-gray-100'
+                        }`}>
+                          {act.action === 'LOGIN' && '🔐'}
+                          {act.action === 'LOGOUT' && '🚪'}
+                          {act.action === 'REGISTER' && '✨'}
+                          {act.action.includes('CREATE') && '➕'}
+                          {act.action.includes('UPDATE') && '✏️'}
+                          {act.action.includes('DELETE') && '🗑️'}
+                          {!['LOGIN', 'LOGOUT', 'REGISTER'].includes(act.action) && 
+                           !act.action.includes('CREATE') && 
+                           !act.action.includes('UPDATE') && 
+                           !act.action.includes('DELETE') && '📝'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-gray-800">{act.full_name || act.username}</p>
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                               act.action === 'LOGIN' ? 'bg-green-100 text-green-700' :
                               act.action === 'LOGOUT' ? 'bg-gray-100 text-gray-700' :
                               act.action === 'REGISTER' ? 'bg-blue-100 text-blue-700' :
                               act.action.includes('CREATE') ? 'bg-purple-100 text-purple-700' :
                               act.action.includes('UPDATE') ? 'bg-yellow-100 text-yellow-700' :
-                              act.action.includes('DELETE') ? 'bg-red-100 text-red-700' :
-                              'bg-gray-100 text-gray-700'
+                              act.action.includes('DELETE') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                             }`}>
                               {act.action}
                             </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{act.description}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                          <p className="text-sm text-gray-600">{act.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            🕐 {new Date(act.created_at).toLocaleString('id-ID', {
+                              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit', second: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

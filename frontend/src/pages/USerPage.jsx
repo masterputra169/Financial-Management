@@ -1,9 +1,35 @@
-// src/pages/UserPage.jsx - Dashboard User dengan CRUD
+// src/pages/UserPage.jsx - Dashboard User dengan CRUD & Charts
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { transactionAPI } from '../services/api';
 import Footer from '../components/organisms/Footer';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+} from 'chart.js';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement
+);
 
 const UserPage = () => {
   const navigate = useNavigate();
@@ -11,19 +37,22 @@ const UserPage = () => {
   
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ totalPemasukan: 0, totalPengeluaran: 0, saldo: 0 });
+  const [categorySummary, setCategorySummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ type: '', category: '' });
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [txRes, sumRes] = await Promise.all([
+      const [txRes, sumRes, catRes] = await Promise.all([
         transactionAPI.getAll(filter),
-        transactionAPI.getSummary()
+        transactionAPI.getSummary(),
+        transactionAPI.getCategorySummary()
       ]);
       
       if (txRes.success) setTransactions(txRes.data);
       if (sumRes.success) setSummary(sumRes.data);
+      if (catRes.success) setCategorySummary(catRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -46,6 +75,187 @@ const UserPage = () => {
       }
     } catch (error) {
       alert('❌ Gagal menghapus: ' + error.message);
+    }
+  };
+
+  // Prepare chart data
+  const getPemasukanByCategory = () => {
+    return categorySummary.filter(c => c.type === 'pemasukan');
+  };
+
+  const getPengeluaranByCategory = () => {
+    return categorySummary.filter(c => c.type === 'pengeluaran');
+  };
+
+  // Doughnut Chart - Pemasukan vs Pengeluaran
+  const balanceChartData = {
+    labels: ['Pemasukan', 'Pengeluaran'],
+    datasets: [
+      {
+        data: [summary.totalPemasukan, summary.totalPengeluaran],
+        backgroundColor: ['#10B981', '#EF4444'],
+        borderColor: ['#059669', '#DC2626'],
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const balanceChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          padding: 15,
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
+      },
+      title: {
+        display: true,
+        text: '💰 Pemasukan vs Pengeluaran',
+        font: {
+          size: 16,
+          weight: 'bold'
+        }
+      }
+    }
+  };
+
+  // Bar Chart - Kategori Pemasukan
+  const pemasukanCategories = getPemasukanByCategory();
+  const pemasukanChartData = {
+    labels: pemasukanCategories.map(c => c.category),
+    datasets: [
+      {
+        label: 'Pemasukan (Rp)',
+        data: pemasukanCategories.map(c => parseFloat(c.total)),
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderColor: 'rgba(5, 150, 105, 1)',
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  // Bar Chart - Kategori Pengeluaran
+  const pengeluaranCategories = getPengeluaranByCategory();
+  const pengeluaranChartData = {
+    labels: pengeluaranCategories.map(c => c.category),
+    datasets: [
+      {
+        label: 'Pengeluaran (Rp)',
+        data: pengeluaranCategories.map(c => parseFloat(c.total)),
+        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        borderColor: 'rgba(220, 38, 38, 1)',
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const categoryChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return 'Rp ' + value.toLocaleString('id-ID');
+          }
+        }
+      }
+    }
+  };
+
+  // Line Chart - Trend Transaksi (Last 7 days)
+  const getLast7DaysTransactions = () => {
+    const last7Days = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayTransactions = transactions.filter(tx => 
+        tx.date.split('T')[0] === dateStr
+      );
+      
+      const pemasukan = dayTransactions
+        .filter(tx => tx.type === 'pemasukan')
+        .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+      
+      const pengeluaran = dayTransactions
+        .filter(tx => tx.type === 'pengeluaran')
+        .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+      
+      last7Days.push({
+        date: date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+        pemasukan,
+        pengeluaran
+      });
+    }
+    
+    return last7Days;
+  };
+
+  const trendData = getLast7DaysTransactions();
+  const trendChartData = {
+    labels: trendData.map(d => d.date),
+    datasets: [
+      {
+        label: 'Pemasukan',
+        data: trendData.map(d => d.pemasukan),
+        borderColor: 'rgb(16, 185, 129)',
+        backgroundColor: 'rgba(16, 185, 129, 0.5)',
+        tension: 0.4,
+      },
+      {
+        label: 'Pengeluaran',
+        data: trendData.map(d => d.pengeluaran),
+        borderColor: 'rgb(239, 68, 68)',
+        backgroundColor: 'rgba(239, 68, 68, 0.5)',
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const trendChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: '📈 Trend Transaksi 7 Hari Terakhir',
+        font: {
+          size: 16,
+          weight: 'bold'
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return 'Rp ' + value.toLocaleString('id-ID');
+          }
+        }
+      }
     }
   };
 
@@ -86,6 +296,51 @@ const UserPage = () => {
             <p className="text-blue-100 text-sm font-medium">Saldo</p>
             <p className="text-3xl font-bold mt-2">Rp {summary.saldo.toLocaleString('id-ID')}</p>
             <p className="text-blue-200 text-sm mt-2">💰 Balance</p>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Balance Doughnut Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="h-64">
+              <Doughnut data={balanceChartData} options={balanceChartOptions} />
+            </div>
+          </div>
+
+          {/* Pemasukan Bar Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="font-bold text-gray-800 mb-4">📊 Pemasukan per Kategori</h3>
+            <div className="h-56">
+              {pemasukanCategories.length > 0 ? (
+                <Bar data={pemasukanChartData} options={categoryChartOptions} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  <p>Belum ada data pemasukan</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Pengeluaran Bar Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="font-bold text-gray-800 mb-4">📊 Pengeluaran per Kategori</h3>
+            <div className="h-56">
+              {pengeluaranCategories.length > 0 ? (
+                <Bar data={pengeluaranChartData} options={categoryChartOptions} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  <p>Belum ada data pengeluaran</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Trend Line Chart */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div className="h-80">
+            <Line data={trendChartData} options={trendChartOptions} />
           </div>
         </div>
 
